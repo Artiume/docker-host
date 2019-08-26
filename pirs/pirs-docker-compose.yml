@@ -50,8 +50,8 @@ services:
             - Media:/data
         environment:
             - OPENVPN_PROVIDER=OVPN
-            - OPENVPN_USERNAME=ratnose
-            - OPENVPN_PASSWORD=KLY-PNq-uu5-RX8
+            - OPENVPN_USERNAME=
+            - OPENVPN_PASSWORD=
             - LOCAL_NETWORK=10.20.1.0/24
 
     proxy:
