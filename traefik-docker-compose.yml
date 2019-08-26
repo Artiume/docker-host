@@ -13,7 +13,7 @@ services:
             traefik.enable: true
             traefik.frontend.rule: "Host:traefik.${DOMAIN1}"
             traefik.frontend.auth.basic: "master:$$apr1$$EfBTn744$P73vgx5dek0FPXnWMoalG0"
-            traefik.port: 8100
+            traefik.port: 8080
         volumes:
             - /var/run/docker.sock:/var/run/docker.sock:ro
             - ./traefik/traefik.toml:/traefik.toml
