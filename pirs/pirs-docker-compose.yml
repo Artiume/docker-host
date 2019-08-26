@@ -122,7 +122,7 @@ services:
             - PGID=${PGID}
         labels:
             - "traefik.enable=true"
-            - "traefik.backend=organizr"
+            - "traefik.backend=ombi"
             - "traefik.frontend.rule=Host:ombi.${DOMAINNAME}"
             - "traefik.port=80"
             - "traefik.docker.network=traefik_proxy"

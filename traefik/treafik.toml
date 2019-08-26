@@ -1,0 +1,48 @@
+logLevel = "INFO" #DEBUG, INFO, WARN, ERROR, FATAL, PANIC
+#InsecureSkipVerify = true
+defaultEntryPoints = ["http", "https"]
+
+[api]
+  entryPoint = "traefik"
+  dashboard = true
+
+[entryPoints]
+  [entryPoints.http]
+    address = ":80"
+    [entryPoints.http.redirect]
+      entryPoint = "https"
+  [entryPoints.https]
+    address = ":443"
+    [entryPoints.https.tls]
+  [entryPoints.http.auth]
+    headerField = "X-WebAuth-User"
+    [entryPoints.http.auth.forward]
+      address = "http://oauth:4181"
+      trustForwardHeader = true
+      authResponseHeaders = ["X-Forwarded-User"]
+
+[file]
+  filename = "/traefik/rules.toml"
+  watch = true
+
+## Let's Encrypt Configuration ##
+[acme]
+  email = "mattias.hedman@gmail.com"
+  storage = "/etc/traefik/acme/acme.json"
+  entryPoint = "https"
+  acmeLogging = true
+
+[acme.dnsChallenge]
+  provider = "cloudflare"
+[[acme.domains]]
+   main = "grillgeek.se"
+[[acme.domains]]
+   main = "*.grillgeek.se"
+[[acme.domains]]
+   main = "sundsvallbbq.se"
+
+[docker]
+  endpoint = "unix:///var/run/docker.sock"
+  domain = "grillgeek.se"
+  watch = true
+  exposedbydefault = false
