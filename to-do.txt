@@ -1,0 +1,6 @@
+Add env file
+
+Content: 
+PUID
+GUID
+USERDIR

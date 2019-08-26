@@ -37,17 +37,21 @@ services:
         links:
             - mongo
         ports:
-            - 3478:3478/udp
-            - 8080:8080
-            - 8443:8443
-            - 8880:8880
-            - 8843:8843
             - 6789:6789
+            - 8080:8080
+            - 8081:8081
+            - 8880:8880
+            - 8443:8443
+            - 8843:8843
+            - 3478:3478/udp
             - 10001:10001/udp
         volumes:
             - /etc/localtime:/etc/localtime:ro
-            - ./unifi/:/usr/lib/unifi
+            - ./unifi:/config
+            - ./shared:/shared
         environment:
+            - PUID=${PUID}
+            - PGID=${PGID}
             - DB_MONGO_LOCAL=false
             - DB_MONGO_URI=mongodb://mongo:27017/unifi
             - STATDB_MONGO_URI=mongodb://mongo:27017/unifi_stat
@@ -55,6 +59,25 @@ services:
             - UNIFI_DB_NAME=unifi
         networks:
             - web
+        labels:
+            - "traefik.enable=true"
+            - "traefik.backend=unifi"
+            - "traefik.frontend.rule=Host:unifi.${DOMAINNAME}"
+            - "traefik.port=8443"
+            - "traefik.protocol=https"
+            - "traefik.docker.network=traefik_proxy"
+            - "traefik.frontend.headers.SSLRedirect=true"
+            - "traefik.frontend.headers.STSSeconds=315360000"
+            - "traefik.frontend.headers.browserXSSFilter=true"
+            - "traefik.frontend.headers.contentTypeNosniff=true"
+            - "traefik.frontend.headers.forceSTSHeader=true"
+            - "traefik.frontend.headers.SSLHost=unifi.${DOMAINNAME}"
+            - "traefik.frontend.headers.SSLForceHost=true"
+            - "traefik.frontend.headers.STSIncludeSubdomains=true"
+            - "traefik.frontend.headers.STSPreload=true"
+            - "traefik.frontend.headers.frameDeny=true"
+            - "traefik.frontend.passHostHeader=true"
+            - "traefik.frontend.auth.forward.address=http://oauth:4181"
 
 
     watchtower:
