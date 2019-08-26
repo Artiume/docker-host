@@ -52,20 +52,6 @@ version: '3.7'
         restart: unless-stopped
         ports:
             - 8181:8080
-
-    ombi:
-        image: linuxserver/ombi
-        container_name: ombi
-        environment:
-            - PUID=1000
-            - PGID=1000
-            - TZ=Europe/Stockholm
-            - BASE_URL=ombi.grillgeek.se
-        volumes:
-            - ./appdata/ombi/:/config
-        ports:
-            - 3579:3579
-        restart: unless-stopped
     
     unifi-controller:
         image: linuxserver/unifi-controller:latest
@@ -90,6 +76,22 @@ version: '3.7'
             - 8883:8883
             - 6789:6789
         restart: unless-stopped
+
+    syslog:
+        image: balabit/syslog-ng:latest
+        container_name: syslog
+        volumes:
+            - ./appdata/syslog:/syslog
+        ports:
+            - 514:514/udp
+            - 601:601
+
+    watchtower:
+        image: containrrr/watchtower:latest
+        container_name: watchtower
+        volumes:
+            - /var/run/docker.sock:/var/run/docker.sock
+        command: --interval 30
 
 volumes:
     Nextcloud:
