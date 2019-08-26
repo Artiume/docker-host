@@ -1,26 +1,63 @@
 version: '3.7'
-services:
-  traefik:
-    image: traefik:latest
-    container_name: traefik
-    restart: always
-    ports:
-        - 80:80
-        - 443:443
-        - 8100:8080
-    labels:
-        traefik.enable: true
-        traefik.frontend.rule: "Host:traefik.${DOMAIN1}"
-        traefik.frontend.auth.basic: "master:$$apr1$$EfBTn744$P73vgx5dek0FPXnWMoalG0"
-        traefik.port: 8100
-    volumes:
-        - /var/run/docker.sock:/var/run/docker.sock:ro
-        - ./traefik/traefik.toml:/traefik.toml
-        - ./traefik/acme.json:/acme.json
-    networks:
-        - web
 
-      watchtower:
+services:
+    traefik:
+        image: traefik:latest
+        container_name: traefik
+        restart: always
+        ports:
+            - 80:80
+            - 443:443
+            - 8100:8080
+        labels:
+            traefik.enable: true
+            traefik.frontend.rule: "Host:traefik.${DOMAIN1}"
+            traefik.frontend.auth.basic: "master:$$apr1$$EfBTn744$P73vgx5dek0FPXnWMoalG0"
+            traefik.port: 8100
+        volumes:
+            - /var/run/docker.sock:/var/run/docker.sock:ro
+            - ./traefik/traefik.toml:/traefik.toml
+            - ./traefik/acme.json:/acme.json
+        networks:
+            - web
+
+    mongo:
+        image: mongo
+        container_name: unifidb
+        restart: unless-stopped
+        volumes:
+            - ./mongodb/db:/data/db
+        networks:
+            - web
+
+    unifi:
+        image: goofball222/unifi
+        container_name: unifi
+        restart: unless-stopped
+        links:
+            - mongo
+        ports:
+            - 3478:3478/udp
+            - 8080:8080
+            - 8443:8443
+            - 8880:8880
+            - 8843:8843
+            - 6789:6789
+            - 10001:10001/udp
+        volumes:
+            - /etc/localtime:/etc/localtime:ro
+            - ./unifi/:/usr/lib/unifi
+        environment:
+            - DB_MONGO_LOCAL=false
+            - DB_MONGO_URI=mongodb://mongo:27017/unifi
+            - STATDB_MONGO_URI=mongodb://mongo:27017/unifi_stat
+            - TZ=Europe/Stockholm
+            - UNIFI_DB_NAME=unifi
+        networks:
+            - web
+
+
+    watchtower:
         image: containrrr/watchtower:latest
         container_name: watchtower
         volumes:
@@ -28,5 +65,5 @@ services:
         command: --interval 30
 
 networks:
-  web:
-    external: true
+    web:
+        external: true
