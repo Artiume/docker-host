@@ -14,8 +14,40 @@ services:
       - 80:80
       - 443:443
       - 8080:8080 #Close this port once you verify traefik.domain.tld works
+    command: 
+      - "--logLevel=WARN"
+      - "--ping=false"
+      - "--api"
+      - "--api.entrypoint=apiport"
+      - "--defaultentrypoints=http,https"
+      - "--entrypoints=Name:http Address::80 Redirect.EntryPoint:https"
+      - "--entrypoints=Name:https Address::443 TLS TLS.SniStrict:true TLS.MinVersion:VersionTLS12 CipherSuites:TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256, TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256, TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384, TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384, TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256, TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256"
+      - "--entrypoints=Name:apiport Address::8080"
+      - "--acme"
+      - "--acme.acmelogging" 
+      - "--acme.storage=/acme.json"
+      - "--acme.entryPoint=https"
+      - "--acme.dnsChallenge=true"
+      - "--acme.dnsChallenge.provider=godaddy"
+      - "--acme.dnsChallenge.delayBeforeCheck=60"
+      - "--acme.onHostRule=true"
+      - "--acme.email=${EMAIL}"
+      - "--acme.acmeLogging=true"
+      - "--acme.domains=${DOMAINNAME},*.${DOMAINNAME},${DOMAINNAME2},"
+      - "--acme.KeyType=RSA4096"
+      - "--docker"
+      - "--docker.domain=${DOMAINNAME}"
+      - "--docker.watch"
+      - "--docker.exposedbydefault=false"
+      - "--retry"
+#      - "--file"
+      - "resolvers=[192,168.1.1:53,1.1.1.1:53,]"
+    environment:
+      TZ: ${TZ}
+      CLOUDFLARE_EMAIL: ${EMAIL}
+      CLOUDFLARE_API_KEY: ${CFKEY}
     labels:
-      traefik.enable: true
+      traefik.enable: "true"
       traefik.backend: traefik
       traefik.frontend.rule: "Host:traefik.${DOMAIN1}"
       traefik.port: 8080
@@ -39,8 +71,9 @@ services:
 #        traefik.frontend.auth.forward.trustForwardHeader: "true"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - ./traefik/traefik.toml:/traefik.toml
+#      - ./traefik/traefik.toml:/traefik.toml
       - ./traefik/acme.json:/acme.json
+#      - ./traefik/rules.toml:/rules.toml
     restart: always
 
   mongo:

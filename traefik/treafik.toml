@@ -27,7 +27,7 @@ defaultEntryPoints = ["http", "https"]
 
 ## Let's Encrypt Configuration ##
 [acme]
-  email = "mattias.hedman@gmail.com"
+  email = "ratnose@mail.com"
   storage = "/etc/traefik/acme/acme.json"
   entryPoint = "https"
   acmeLogging = true
@@ -35,14 +35,14 @@ defaultEntryPoints = ["http", "https"]
 [acme.dnsChallenge]
   provider = "cloudflare"
 [[acme.domains]]
-   main = "grillgeek.se"
+   main = "domain1.io"
 [[acme.domains]]
-   main = "*.grillgeek.se"
+   main = "*.domain1.io"
 [[acme.domains]]
-   main = "sundsvallbbq.se"
+   main = "domain2.io"
 
 [docker]
   endpoint = "unix:///var/run/docker.sock"
-  domain = "grillgeek.se"
+  domain = "domain1.io"
   watch = true
   exposedbydefault = false
