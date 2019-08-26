@@ -1,1 +1,25 @@
 version: '3.7'
+services:
+  traefik:
+    image: traefik:latest
+    container_name: traefik
+    restart: always
+    ports:
+        - 80:80
+        - 443:443
+        - 8100:8080
+    labels:
+        traefik.enable: true
+        traefik.frontend.rule: "Host:traefik.${DOMAIN1}"
+        traefik.frontend.auth.basic: "master:$$apr1$$EfBTn744$P73vgx5dek0FPXnWMoalG0"
+        traefik.port: 8100
+    volumes:
+        - /var/run/docker.sock:/var/run/docker.sock:ro
+        - ./traefik/traefik.toml:/traefik.toml
+        - ./traefik/acme.json:/acme.json
+    networks:
+        - web
+
+networks:
+  web:
+    external: true
