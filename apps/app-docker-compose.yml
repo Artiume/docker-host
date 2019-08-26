@@ -1,1 +1,68 @@
 version: '3.7'
+    plex:
+        image: linuxserver/plex:latest
+        container_name: plex
+        network_mode: host
+        environment:
+            - PUID=1000
+            - PGID=1000
+            - VERSION=docker
+        volumes:
+            - ./appdata/plex/:/config
+            - ./appdata/plex/transcode:/transcode
+            - Plexmedia:/plexmedia
+        restart: unless-stopped
+        ports:
+            - 32400:32400
+
+    mariadb:
+        image: linuxserver/mariadb
+        container_name: mariadb
+        environment:
+            - PUID=1000
+            - PGID=1000
+            - MYSQL_ROOT_PASSWORD=9zmq893FF!!9zmq893f
+            - TZ=Europe/Stockholm
+        volumes:
+            - ./appdata/mariadb:/config
+        ports:
+            - 3306:3306
+        restart: unless-stopped
+
+    cloud:
+        image: linuxserver/nextcloud:latest
+        container_name: cloud
+        environment:
+            - PUID=1000
+            - PGID=1000
+            - TZ=Europe/Stockholm
+        volumes:
+            - ./appdata/cloud:/config
+            - Nextcloud:/data
+        ports:
+           - 8040:80
+           - 8043:443
+        depends_on:
+            - mariadb
+        restart: unless-stopped
+
+    adminer:
+        image: adminer
+        container_name: adminer
+        restart: unless-stopped
+        ports:
+            - 8181:8080
+
+    ombi:
+        image: linuxserver/ombi
+        container_name: ombi
+        environment:
+            - PUID=1000
+            - PGID=1000
+            - TZ=Europe/Stockholm
+            - BASE_URL=ombi.grillgeek.se
+        volumes:
+            - ./appdata/ombi/:/config
+        ports:
+            - 3579:3579
+        restart: unless-stopped
