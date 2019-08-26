@@ -8,7 +8,7 @@ services:
             - PGID=1000
             - TZ=Europe/Stockholm
         volumes:
-            - ./appdata/nzbget:/config
+            - ./nzbget:/config
             - Media:/media
         ports:
             - 8082:6789
@@ -24,7 +24,7 @@ services:
             - PGID=1000
             - TZ=Europe/Stockholm
         volumes:
-            - ./appdata/sabnzbd:/config
+            - ./sabnzbd:/config
             - Media:/plexmedia
         ports:
             - 8080:8080
@@ -72,7 +72,7 @@ services:
             - PGID=1000
             - TZ=Europe/Stockholm
         volumes:
-            - ./appdata/sonarr:/config
+            - ./sonarr:/config
             - Media:/plexbase
         restart: unless-stopped
         ports:
@@ -87,7 +87,7 @@ services:
             - TZ=Europe/Stockholm
             - UMASK_SET=022
         volumes:
-            - ./appdata/couchpotato:/config
+            - ./couchpotato:/config
             - Media:/media
         ports:
             - 5050:5050
@@ -101,7 +101,7 @@ services:
             - PGID=1000
             - TZ=Europe/Stockholm
         volumes:
-            - ./appdata/muximux:/config
+            - ./muximux:/config
         restart: unless-stopped
         ports:
             - 80:80
@@ -114,7 +114,7 @@ services:
             - TZ=Europe/Stockholm
             - BASE_URL=ombi.grillgeek.se
         volumes:
-            - ./appdata/ombi/:/config
+            - ./ombi/:/config
         ports:
             - 3579:3579
         restart: unless-stopped
