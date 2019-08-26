@@ -1,5 +1,427 @@
 version: '3.7'
 
+    mongo:
+        image: mongo
+        container_name: unifidb
+        restart: unless-stopped
+        volumes:
+            - ./appdata/mongodb:/data/db
+        networks:
+            - web
+
+    unifi:
+        image: goofball222/unifi
+        container_name: unifi
+        restart: unless-stopped
+        depends_on:
+            - mongo
+        ports:
+            - 6789:6789
+            - 8080:8080
+            - 8081:8081
+            - 8880:8880
+            - 8443:8443
+            - 8843:8843
+            - 3478:3478/udp
+            - 10001:10001/udp
+        volumes:
+            - /etc/localtime:/etc/localtime:ro
+            - ./appdata/unifi:/config
+            - ./appdata:/shared
+        environment:
+            - PUID=${PUID}
+            - PGID=${PGID}
+            - DB_MONGO_LOCAL=false
+            - DB_MONGO_URI=mongodb://mongo:27017/unifi
+            - STATDB_MONGO_URI=mongodb://mongo:27017/unifi_stat
+            - TZ=Europe/Stockholm
+            - UNIFI_DB_NAME=unifi
+        networks:
+            - web
+        labels:
+            - "traefik.enable=true"
+            - "traefik.backend=unifi"
+            - "traefik.frontend.rule=Host:unifi.${DOMAINNAME}"
+            - "traefik.port=8443"
+            - "traefik.protocol=https"
+            - "traefik.docker.network=traefik_proxy"
+            - "traefik.frontend.headers.SSLRedirect=true"
+            - "traefik.frontend.headers.STSSeconds=315360000"
+            - "traefik.frontend.headers.browserXSSFilter=true"
+            - "traefik.frontend.headers.contentTypeNosniff=true"
+            - "traefik.frontend.headers.forceSTSHeader=true"
+            - "traefik.frontend.headers.SSLHost=unifi.${DOMAINNAME}"
+            - "traefik.frontend.headers.SSLForceHost=true"
+            - "traefik.frontend.headers.STSIncludeSubdomains=true"
+            - "traefik.frontend.headers.STSPreload=true"
+            - "traefik.frontend.headers.frameDeny=true"
+            - "traefik.frontend.passHostHeader=true"
+            - "traefik.frontend.auth.forward.address=http://oauth:4181"
+
+    plex:
+        container_name: plex
+        image: plexinc/pms-docker
+        restart: always
+        networks:
+            - traefik_proxy
+        ports:
+            - "32400:32400/tcp"
+            - "3005:3005/tcp"
+            - "8324:8324/tcp"
+            - "32469:32469/tcp"
+            - "1900:1900/udp"
+            - "32410:32410/udp"
+            - "32412:32412/udp"
+            - "32413:32413/udp"
+            - "32414:32414/udp"
+        volumes:
+            - ./plex/:/config
+            - ./plex/transcode:/transcode #I use /dev/shm:/transcode so it uses ram for my transcode folder. Dont do if you dont have the RAM to support lol.
+            - Plexmedia:/plexmedia
+            - /etc/timezone:/etc/timezone:ro #Not needed with TZ=${TZ} set.
+            - ${USERDIR}/shared:/shared
+        environment:
+            - PLEX_UID=${PUID}
+            - PLEX_GID=${PGID}
+            - TZ=${TZ}
+        #   - PLEX_CLAIM= # https://www.plex.tv/claim/
+            - HOSTNAME="SERVER NAME" # May not be necessary
+        #   - ALLOWED_NETWORKS=192.168.0.0/255.255.255.0 #- ALLOWED_NETWORKS=192.168.0.0/24 should work fine.
+            - ADVERTISE_IP=http://192.168.1.122:32400,https://plex.${DOMAINNAME}:443 # First IP is the server running Plex. I entered the full domain name for the second address. Drop :443, it isnt needed.
+        labels:
+            - "traefik.enable=true"
+            - "traefik.backend=plexms"
+            - "traefik.frontend.rule=Host:plex.${DOMAINNAME}"
+            - "traefik.port=32400"
+            - "traefik.docker.network=traefik_proxy"
+            - "traefik.frontend.headers.SSLRedirect=true"
+            - "traefik.frontend.headers.STSSeconds=315360000"
+            - "traefik.frontend.headers.browserXSSFilter=true"
+            - "traefik.frontend.headers.contentTypeNosniff=true"
+            - "traefik.frontend.headers.forceSTSHeader=true"
+            - "traefik.frontend.headers.SSLHost=plex.${DOMAINNAME}"
+            - "traefik.frontend.headers.SSLForceHost=true"
+            - "traefik.frontend.headers.STSIncludeSubdomains=true"
+            - "traefik.frontend.headers.STSPreload=true"
+            - "traefik.frontend.headers.frameDeny=true"
+
+    mariadb:
+        image: linuxserver/mariadb
+        container_name: mariadb
+        environment:
+            - PUID=1000
+            - PGID=1000
+            - MYSQL_ROOT_PASSWORD=9zmq893FF!!9zmq893f
+            - TZ=Europe/Stockholm
+        volumes:
+            - ./appdata/mariadb:/config
+        ports:
+            - 3306:3306
+        restart: unless-stopped
+
+    nextcloud:
+        container_name: nextcloud
+        image: linuxserver/nextcloud
+        restart: always
+        networks:
+            - traefik_proxy
+    #    ports:
+    #      - "443:443"
+        volumes:
+            - ./appdata/cloud:/config
+            - Nextcloud:/data
+            - ${USERDIR}/docker/shared:/shared
+        environment:
+            - PUID=${PUID}
+            - PGID=${PGID}
+            - TZ=${TZ}
+        labels:
+            - "traefik.enable=true"
+            - "traefik.backend=nextcloud"
+            - "traefik.frontend.rule=Host:nextcloud.${DOMAINNAME}"
+            - "traefik.port=443"
+            - "traefik.protocol=https"
+            - "traefik.docker.network=traefik_proxy"
+            - "traefik.frontend.headers.SSLRedirect=true"
+            - "traefik.frontend.headers.STSSeconds=315360000"
+            - "traefik.frontend.headers.browserXSSFilter=true"
+            - "traefik.frontend.headers.contentTypeNosniff=true"
+            - "traefik.frontend.headers.forceSTSHeader=true"
+            - "traefik.frontend.headers.SSLHost=nextcloud.${DOMAINNAME}"
+            - "traefik.frontend.headers.SSLForceHost=true"
+            - "traefik.frontend.headers.STSIncludeSubdomains=true"
+            - "traefik.frontend.headers.STSPreload=true"
+            - "traefik.frontend.headers.customResponseHeaders: X-Robots-Tag:noindex,nofollow,nosnippet,noarchive,notranslate,noimageindex"
+            - "traefik.frontend.headers.customFrameOptionsValue=SAMEORIGIN"
+            - "traefik.frontend.redirect.permanent=true"
+            - "traefik.frontend.redirect.regex=https://(.*)/.well-known/(card|cal)dav"
+            - "traefik.frontend.redirect.replacement=https://$$1/remote.php/dav/"
+
+    adminer:
+        image: adminer
+        container_name: adminer
+        restart: unless-stopped
+        ports:
+            - 8181:8080
+    
+    syslog:
+        image: balabit/syslog-ng:latest
+        container_name: syslog
+        volumes:
+            - ./appdata/syslog:/syslog
+        ports:
+            - 514:514/udp
+            - 601:601
+
+    watchtower: #I personally remove plex from the watchtower list so that it doesnt update without me knowing. 
+        image: containrrr/watchtower:latest
+        container_name: watchtower
+        volumes:
+            - /var/run/docker.sock:/var/run/docker.sock
+        command: --interval 30
+
+volumes:
+    Nextcloud:
+        driver_opts:
+            type: "nfs"
+            o: "addr=10.20.1.90,rw,soft"
+            device: ":/mnt/storage/nextcloud"
+
+    Plexmedia:
+        driver_opts:
+            type: "nfs"
+            o: "addr=10.20.1.90,rw,soft"
+  unifi:
+    image: goofball222/unifi
+    container_name: unifi
+    restart: unless-stopped
+    depends_on:
+      - mongo
+    ports:
+      - 6789:6789
+      - 8080:8080
+      - 8081:8081
+      - 8880:8880
+      - 8443:8443
+      - 8843:8843
+      - 3478:3478/udp
+      - 10001:10001/udp
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ./traefik/unifi:/config
+      - ./traefik:/shared
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - DB_MONGO_LOCAL=false
+      - DB_MONGO_URI=mongodb://mongo:27017/unifi
+      - STATDB_MONGO_URI=mongodb://mongo:27017/unifi_stat
+      - TZ=Europe/Stockholm
+      - UNIFI_DB_NAME=unifi
+    networks:
+      - web
+    labels:
+      - "traefik.enable=true"
+      - "traefik.backend=unifi"
+      - "traefik.frontend.rule=Host:unifi.${DOMAINNAME}"
+      - "traefik.port=8443"
+      - "traefik.protocol=https"
+      - "traefik.docker.network=traefik_proxy"
+      - "traefik.frontend.headers.SSLRedirect=true"
+      - "traefik.frontend.headers.STSSeconds=315360000"
+      - "traefik.frontend.headers.browserXSSFilter=true"
+      - "traefik.frontend.headers.contentTypeNosniff=true"
+      - "traefik.frontend.headers.forceSTSHeader=true"
+      - "traefik.frontend.headers.SSLHost=unifi.${DOMAINNAME}"
+      - "traefik.frontend.headers.SSLForceHost=true"
+      - "traefik.frontend.headers.STSIncludeSubdomains=true"
+      - "traefik.frontend.headers.STSPreload=true"
+      - "traefik.frontend.headers.frameDeny=true"
+      - "traefik.frontend.passHostHeader=true"
+      - "traefik.frontend.auth.forward.address=http://oauth:4181"
+
+    plex:
+        container_name: plex
+        image: plexinc/pms-docker
+        restart: always
+        networks:
+            - traefik_proxy
+        ports:
+            - "32400:32400/tcp"
+            - "3005:3005/tcp"
+            - "8324:8324/tcp"
+            - "32469:32469/tcp"
+            - "1900:1900/udp"
+            - "32410:32410/udp"
+            - "32412:32412/udp"
+            - "32413:32413/udp"
+            - "32414:32414/udp"
+        volumes:
+            - ./plex/:/config
+            - ./plex/transcode:/transcode #I use /dev/shm:/transcode so it uses ram for my transcode folder. Dont do if you dont have the RAM to support lol.
+            - Plexmedia:/plexmedia
+            - /etc/timezone:/etc/timezone:ro #Not needed with TZ=${TZ} set.
+            - ${USERDIR}/shared:/shared
+        environment:
+            - PLEX_UID=${PUID}
+            - PLEX_GID=${PGID}
+            - TZ=${TZ}
+        #   - PLEX_CLAIM= # https://www.plex.tv/claim/
+            - HOSTNAME="SERVER NAME" # May not be necessary
+        #   - ALLOWED_NETWORKS=192.168.0.0/255.255.255.0 #- ALLOWED_NETWORKS=192.168.0.0/24 should work fine.
+            - ADVERTISE_IP=http://192.168.1.122:32400,https://plex.${DOMAINNAME}:443 # First IP is the server running Plex. I entered the full domain name for the second address. Drop :443, it isnt needed.
+        labels:
+            - "traefik.enable=true"
+            - "traefik.backend=plexms"
+            - "traefik.frontend.rule=Host:plex.${DOMAINNAME}"
+            - "traefik.port=32400"
+            - "traefik.docker.network=traefik_proxy"
+            - "traefik.frontend.headers.SSLRedirect=true"
+            - "traefik.frontend.headers.STSSeconds=315360000"
+            - "traefik.frontend.headers.browserXSSFilter=true"
+            - "traefik.frontend.headers.contentTypeNosniff=true"
+            - "traefik.frontend.headers.forceSTSHeader=true"
+            - "traefik.frontend.headers.SSLHost=plex.${DOMAINNAME}"
+            - "traefik.frontend.headers.SSLForceHost=true"
+            - "traefik.frontend.headers.STSIncludeSubdomains=true"
+            - "traefik.frontend.headers.STSPreload=true"
+            - "traefik.frontend.headers.frameDeny=true"
+
+    mariadb:
+        image: linuxserver/mariadb
+        container_name: mariadb
+        environment:
+            - PUID=1000
+            - PGID=1000
+            - MYSQL_ROOT_PASSWORD=9zmq893FF!!9zmq893f
+            - TZ=Europe/Stockholm
+        volumes:
+            - ./appdata/mariadb:/config
+        ports:
+            - 3306:3306
+        restart: unless-stopped
+
+    nextcloud:
+        container_name: nextcloud
+        image: linuxserver/nextcloud
+        restart: always
+        networks:
+            - traefik_proxy
+    #    ports:
+    #      - "443:443"
+        volumes:
+            - ./appdata/cloud:/config
+            - Nextcloud:/data
+            - ${USERDIR}/docker/shared:/shared
+        environment:
+            - PUID=${PUID}
+            - PGID=${PGID}
+            - TZ=${TZ}
+        labels:
+            - "traefik.enable=true"
+            - "traefik.backend=nextcloud"
+            - "traefik.frontend.rule=Host:nextcloud.${DOMAINNAME}"
+            - "traefik.port=443"
+            - "traefik.protocol=https"
+            - "traefik.docker.network=traefik_proxy"
+            - "traefik.frontend.headers.SSLRedirect=true"
+            - "traefik.frontend.headers.STSSeconds=315360000"
+            - "traefik.frontend.headers.browserXSSFilter=true"
+            - "traefik.frontend.headers.contentTypeNosniff=true"
+            - "traefik.frontend.headers.forceSTSHeader=true"
+            - "traefik.frontend.headers.SSLHost=nextcloud.${DOMAINNAME}"
+            - "traefik.frontend.headers.SSLForceHost=true"
+            - "traefik.frontend.headers.STSIncludeSubdomains=true"
+            - "traefik.frontend.headers.STSPreload=true"
+            - "traefik.frontend.headers.customResponseHeaders: X-Robots-Tag:noindex,nofollow,nosnippet,noarchive,notranslate,noimageindex"
+            - "traefik.frontend.headers.customFrameOptionsValue=SAMEORIGIN"
+            - "traefik.frontend.redirect.permanent=true"
+            - "traefik.frontend.redirect.regex=https://(.*)/.well-known/(card|cal)dav"
+            - "traefik.frontend.redirect.replacement=https://$$1/remote.php/dav/"
+
+    adminer:
+        image: adminer
+        container_name: adminer
+        restart: unless-stopped
+        ports:
+            - 8181:8080
+    
+    syslog:
+        image: balabit/syslog-ng:latest
+        container_name: syslog
+        volumes:
+            - ./appdata/syslog:/syslog
+        ports:
+            - 514:514/udp
+            - 601:601
+
+    watchtower: #I personally remove plex from the watchtower list so that it doesnt update without me knowing. 
+        image: containrrr/watchtower:latest
+        container_name: watchtower
+        volumes:
+            - /var/run/docker.sock:/var/run/docker.sock
+        command: --interval 30
+
+volumes:
+    Nextcloud:
+        driver_opts:
+            type: "nfs"
+            o: "addr=10.20.1.90,rw,soft"
+            device: ":/mnt/storage/nextcloud"
+
+    Plexmedia:
+        driver_opts:
+            type: "nfs"
+            o: "addr=10.20.1.90,rw,soft"
+  unifi:
+    image: goofball222/unifi
+    container_name: unifi
+    restart: unless-stopped
+    depends_on:
+      - mongo
+    ports:
+      - 6789:6789
+      - 8080:8080
+      - 8081:8081
+      - 8880:8880
+      - 8443:8443
+      - 8843:8843
+      - 3478:3478/udp
+      - 10001:10001/udp
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ./traefik/unifi:/config
+      - ./traefik:/shared
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - DB_MONGO_LOCAL=false
+      - DB_MONGO_URI=mongodb://mongo:27017/unifi
+      - STATDB_MONGO_URI=mongodb://mongo:27017/unifi_stat
+      - TZ=Europe/Stockholm
+      - UNIFI_DB_NAME=unifi
+    networks:
+      - web
+    labels:
+      - "traefik.enable=true"
+      - "traefik.backend=unifi"
+      - "traefik.frontend.rule=Host:unifi.${DOMAINNAME}"
+      - "traefik.port=8443"
+      - "traefik.protocol=https"
+      - "traefik.docker.network=traefik_proxy"
+      - "traefik.frontend.headers.SSLRedirect=true"
+      - "traefik.frontend.headers.STSSeconds=315360000"
+      - "traefik.frontend.headers.browserXSSFilter=true"
+      - "traefik.frontend.headers.contentTypeNosniff=true"
+      - "traefik.frontend.headers.forceSTSHeader=true"
+      - "traefik.frontend.headers.SSLHost=unifi.${DOMAINNAME}"
+      - "traefik.frontend.headers.SSLForceHost=true"
+      - "traefik.frontend.headers.STSIncludeSubdomains=true"
+      - "traefik.frontend.headers.STSPreload=true"
+      - "traefik.frontend.headers.frameDeny=true"
+      - "traefik.frontend.passHostHeader=true"
+      - "traefik.frontend.auth.forward.address=http://oauth:4181"
+
     plex:
         container_name: plex
         image: plexinc/pms-docker
