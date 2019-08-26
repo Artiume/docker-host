@@ -50,8 +50,8 @@ services:
             - Media:/data
         environment:
             - OPENVPN_PROVIDER=OVPN
-            - OPENVPN_USERNAME=
-            - OPENVPN_PASSWORD=
+            - OPENVPN_USERNAME=${OPVN_USER}
+            - OPENVPN_PASSWORD=${OPVN_PASS}
             - LOCAL_NETWORK=10.20.1.0/24
 
     proxy:
