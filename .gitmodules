@@ -1,0 +1,6 @@
+[submodule "webs/appdata/grillgeek"]
+	path = webs/appdata/grillgeek
+	url = https://github.com/ratnose/grillgeek.git
+[submodule "webs/appdata/sundsvallbbq.se"]
+	path = webs/appdata/sundsvallbbq.se
+	url = https://github.com/ratnose/sundsvallbbq.se.git
