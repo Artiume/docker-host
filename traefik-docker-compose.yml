@@ -1,15 +1,15 @@
 version: '3.7'
 
 networks:
-  web:
-    external: true
+  traefik_proxy:
+    name: traefik_proxy
 
 services:
   traefik:
     image: traefik:latest
     container_name: traefik
     networks:
-      - web
+      traefik_Proxy:
     ports:
       - 80:80
       - 443:443
@@ -28,7 +28,7 @@ services:
       - "--acme.storage=/acme.json"
       - "--acme.entryPoint=https"
       - "--acme.dnsChallenge=true"
-      - "--acme.dnsChallenge.provider=godaddy"
+      - "--acme.dnsChallenge.provider=cloudfront"
       - "--acme.dnsChallenge.delayBeforeCheck=60"
       - "--acme.onHostRule=true"
       - "--acme.email=${EMAIL}"
