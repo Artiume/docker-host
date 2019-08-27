@@ -12,6 +12,7 @@ services:
             - Media:/media
         ports:
             - 6789:6789
+# Why does this container have NET_ADMIN privledges?
         cap_add:
             - NET_ADMIN
         restart: unless-stopped
@@ -111,7 +112,7 @@ services:
         image: linuxserver/ombi
         restart: unless-stopped
         networks:
-            - traefik_proxy
+          traefik_proxy:
     #    ports:
     #      - "80:80"
         volumes:
@@ -131,12 +132,12 @@ services:
             - "traefik.frontend.headers.browserXSSFilter=true"
             - "traefik.frontend.headers.contentTypeNosniff=true"
             - "traefik.frontend.headers.forceSTSHeader=true"
-            - "traefik.frontend.headers.SSLHost=organizr.${DOMAINNAME}"
+            - "traefik.frontend.headers.SSLHost=ombi.${DOMAINNAME}"
             - "traefik.frontend.headers.SSLForceHost=true"
             - "traefik.frontend.headers.STSIncludeSubdomains=true"
             - "traefik.frontend.headers.STSPreload=true"
             - "traefik.frontend.headers.frameDeny=true"
-            - "traefik.frontend.auth.forward.address=http://oauth:3579"
+#            - "traefik.frontend.auth.forward.address=http://oauth:3579"
 
     watchtower:
         image: containrrr/watchtower:latest
